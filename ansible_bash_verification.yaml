@@ -1,0 +1,48 @@
+- name: Execute bash script and verify PHP application accessibility
+  hosts: slave
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Copy the bash script to the Slave node
+      copy:
+        src: /home/vagrant/exam_project/lamp_laravel_deployment.sh
+        dest: /home/vagrant/lamp_laravel_deployment.sh
+        mode: 0755
+
+    - name: Execute the bash script on the Slave node
+      shell: /home/vagrant/lamp_laravel_deployment.sh
+      args:
+        chdir: /home/vagrant/
+      register: script_output
+
+    - name: Display PHP application content using curl
+      command: "curl -s http://192.168.1.20"
+      register: php_application
+      ignore_errors: true
+
+    - name: Display PHP application content
+      debug:
+        var: php_application.stdout
+
+    - name: Display message if PHP application is accessible
+      debug:
+        msg: "PHP application is accessible"
+      when: php_application.rc == 0
+
+    - name: Create cron job to check server uptime
+      cron:
+        name: Check server uptime
+        minute: "0"
+        hour: "0"
+        job: "/usr/bin/uptime"
+        state: present
+
+    - name: Display server uptime
+      command: uptime -p
+      register: uptime_output
+
+    - name: Print server uptime
+      debug:
+        var: uptime_output.stdout
+
